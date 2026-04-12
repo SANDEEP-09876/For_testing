@@ -1,0 +1,142 @@
+from flask import Flask, request, render_template_string
+import RPi.GPIO as GPIO
+
+app = Flask(__name__)
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# LEFT SIDE
+L_DIR = 5
+L_PWM = 6
+
+# RIGHT SIDE
+R_DIR = 12
+R_PWM = 16
+
+GPIO.setup(L_DIR, GPIO.OUT)
+GPIO.setup(L_PWM, GPIO.OUT)
+GPIO.setup(R_DIR, GPIO.OUT)
+GPIO.setup(R_PWM, GPIO.OUT)
+
+pwm_L = GPIO.PWM(L_PWM, 1000)
+pwm_R = GPIO.PWM(R_PWM, 1000)
+
+pwm_L.start(0)
+pwm_R.start(0)
+
+speed = 60
+
+# ---------------- MOTOR FUNCTIONS ----------------
+
+def stop():
+    pwm_L.ChangeDutyCycle(0)
+    pwm_R.ChangeDutyCycle(0)
+
+def set_speed(s):
+    global speed
+    speed = s
+
+def forward():
+    GPIO.output(L_DIR, 1)
+    GPIO.output(R_DIR, 1)
+    pwm_L.ChangeDutyCycle(speed)
+    pwm_R.ChangeDutyCycle(speed)
+
+def backward():
+    GPIO.output(L_DIR, 0)
+    GPIO.output(R_DIR, 0)
+    pwm_L.ChangeDutyCycle(speed)
+    pwm_R.ChangeDutyCycle(speed)
+
+def left():
+    GPIO.output(L_DIR, 0)
+    GPIO.output(R_DIR, 1)
+    pwm_L.ChangeDutyCycle(speed)
+    pwm_R.ChangeDutyCycle(speed)
+
+def right():
+    GPIO.output(L_DIR, 1)
+    GPIO.output(R_DIR, 0)
+    pwm_L.ChangeDutyCycle(speed)
+    pwm_R.ChangeDutyCycle(speed)
+
+# ---------------- WEB PAGE ----------------
+
+HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {background:#111;color:white;text-align:center;}
+button {width:90px;height:60px;font-size:20px;margin:5px;}
+.slider {width:80%;}
+</style>
+</head>
+<body>
+
+<h2>Speed</h2>
+<input type="range" min="0" max="100" value="60" id="speed" class="slider">
+
+<h2>Control</h2>
+
+<button onmousedown="move('forward')" onmouseup="move('stop')" 
+        ontouchstart="move('forward')" ontouchend="move('stop')">↑</button><br>
+
+<button onmousedown="move('left')" onmouseup="move('stop')" 
+        ontouchstart="move('left')" ontouchend="move('stop')">←</button>
+
+<button onclick="move('stop')">■</button>
+
+<button onmousedown="move('right')" onmouseup="move('stop')" 
+        ontouchstart="move('right')" ontouchend="move('stop')">→</button><br>
+
+<button onmousedown="move('backward')" onmouseup="move('stop')" 
+        ontouchstart="move('backward')" ontouchend="move('stop')">↓</button>
+
+<script>
+let speedSlider = document.getElementById("speed");
+
+speedSlider.oninput = function(){
+fetch('/speed',{
+method:'POST',
+headers:{'Content-Type':'application/x-www-form-urlencoded'},
+body:'speed='+speedSlider.value
+});
+}
+
+function move(dir){
+fetch('/move',{
+method:'POST',
+headers:{'Content-Type':'application/x-www-form-urlencoded'},
+body:'direction='+dir
+});
+}
+</script>
+
+</body>
+</html>
+"""
+
+@app.route('/')
+def home():
+    return render_template_string(HTML)
+
+@app.route('/move', methods=['POST'])
+def move_route():
+    d = request.form['direction']
+    if d == "forward": forward()
+    elif d == "backward": backward()
+    elif d == "left": left()
+    elif d == "right": right()
+    elif d == "stop": stop()
+    return ('',204)
+
+@app.route('/speed', methods=['POST'])
+def speed_route():
+    set_speed(int(request.form['speed']))
+    return ('',204)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
