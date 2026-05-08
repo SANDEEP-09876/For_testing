@@ -15,7 +15,7 @@ app = Flask(__name__)
 # ==========================================
 # 🛑 PASTE YOUR NEW SECURE API KEY HERE 🛑
 # We now initialize a Client instead of configuring globally
-client = genai.Client(api_key="YOUR_NEW_GEMINI_API_KEY") 
+client = genai.Client(api_key="AIzaSyAYDH-KdCWr6_khyjzqKjB9VUUX_BM-Awk") 
 
 # ==========================================
 # 2. HARDWARE CONFIGURATION
