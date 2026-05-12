@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robotic Arm Controller</title>
+    <style>
+        body { font-family: monospace; background: #121212; color: #00ffcc; padding: 40px; max-width: 600px; margin: 0 auto; }
+        .slider-container { background: #1e1e1e; padding: 20px; margin-bottom: 20px; border-radius: 8px; border: 1px solid #333; }
+        input[type=range] { width: 70%; margin-right: 15px; cursor: pointer; accent-color: #00ffcc; }
+        label { display: block; margin-bottom: 10px; font-weight: bold; color: #fff; }
+        .val-display { font-size: 18px; font-weight: bold; color: #ffeb3b; }
+        #status { text-align: center; margin-top: 20px; color: #888; }
+    </style>
+</head>
+<body>
+    <h2>🦾 5-DOF Arm Control Panel</h2>
+    <p>Drag the slider and release it to move the joint.</p>
+
+    <div class="slider-container">
+        <label>Base (Channel 0)</label>
+        <input type="range" id="ch0" min="0" max="180" value="90">
+        <span class="val-display" id="val0">90°</span>
+    </div>
+    <div class="slider-container">
+        <label>Shoulder (Channel 1)</label>
+        <input type="range" id="ch1" min="0" max="180" value="90">
+        <span class="val-display" id="val1">90°</span>
+    </div>
+    <div class="slider-container">
+        <label>Elbow (Channel 2)</label>
+        <input type="range" id="ch2" min="0" max="180" value="90">
+        <span class="val-display" id="val2">90°</span>
+    </div>
+    <div class="slider-container">
+        <label>Wrist (Channel 3)</label>
+        <input type="range" id="ch3" min="0" max="180" value="90">
+        <span class="val-display" id="val3">90°</span>
+    </div>
+    <div class="slider-container">
+        <label>Gripper (Channel 4)</label>
+        <input type="range" id="ch4" min="0" max="180" value="90">
+        <span class="val-display" id="val4">90°</span>
+    </div>
+
+    <div id="status">System Online...</div>
+
+    <script>
+        const statusText = document.getElementById('status');
+        const channels = [0, 1, 2, 3, 4];
+
+        channels.forEach(ch => {
+            const slider = document.getElementById('ch' + ch);
+            const display = document.getElementById('val' + ch);
+
+            // Update the text number while dragging
+            slider.addEventListener('input', () => {
+                display.innerText = slider.value + '°';
+            });
+
+            // Send to Python when the mouse click is released
+            slider.addEventListener('change', () => {
+                statusText.innerText = `Transmitting Ch ${ch} -> ${slider.value}°...`;
+                
+                fetch(`/api/arm?ch=${ch}&ang=${slider.value}`)
+                    .then(response => {
+                        if(response.ok) statusText.innerText = `✅ Success: Joint moved.`;
+                        else statusText.innerText = `❌ Error: Check Python terminal.`;
+                    })
+                    .catch(err => {
+                        statusText.innerText = `❌ Network Error: Is Python running?`;
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
